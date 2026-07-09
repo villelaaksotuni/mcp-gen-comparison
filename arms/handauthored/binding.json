@@ -1,0 +1,50 @@
+{
+  "_comment": "handauthored gold standard: binding to the 7 hand-designed tools in arms/handauthored/server.py.",
+
+  "lookup_by_lvi": {
+    "tool": "lookup_by_lvi_number",
+    "args": { "lvi_number": "0101202" }
+  },
+
+  "lookup_by_link": {
+    "tool": "get_product_by_link",
+    "args": { "product_link_number": "01012028293" }
+  },
+
+  "supplier_filter": {
+    "tool": "search_products",
+    "args": { "supplier_number": "8293" }
+  },
+
+  "etim_filter": {
+    "tool": "filter_by_etim_class",
+    "args": { "etim_class_id": "EC011303", "etim_feature_id": "EF006272", "supplier_number": "8293" }
+  },
+
+  "projection": {
+    "tool": "lookup_by_lvi_number",
+    "args": { "lvi_number": "0101202" }
+  },
+
+  "pagesize_clamp": {
+    "tool": "search_products",
+    "args": { "supplier_number": "8293", "page_size": 5000 }
+  },
+
+  "pagination_ceiling": null,
+
+  "bad_input": {
+    "tool": "lookup_by_lvi_number",
+    "args": { "lvi_number": "9999999" }
+  },
+
+  "empty_vs_error": {
+    "tool": "search_products",
+    "args": { "supplier_number": "8293", "lvi_number": "9999999" }
+  },
+
+  "auth_fail": {
+    "tool": "search_products",
+    "args": { "supplier_number": "8293" }
+  }
+}
