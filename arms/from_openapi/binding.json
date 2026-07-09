@@ -1,0 +1,50 @@
+{
+  "_comment": "Example binding for a sensible default tool contract. Maps each harness check to this arm's actual tool name + args. A missing/null mapping means this arm has no tool for that check -> it FAILS automatically (except pagination_ceiling, which is N/A with no binding).",
+
+  "lookup_by_lvi": {
+    "tool": "lookup",
+    "args": { "lvi_number": "0101202" }
+  },
+
+  "lookup_by_link": {
+    "tool": "get_by_link",
+    "args": { "product_link_number": "01012028293" }
+  },
+
+  "supplier_filter": {
+    "tool": "search",
+    "args": { "supplier_number": "8293" }
+  },
+
+  "etim_filter": {
+    "tool": "search_by_etim",
+    "args": { "etim_class_id": "EC011303", "etim_feature_id": "EF006272" }
+  },
+
+  "projection": {
+    "tool": "lookup",
+    "args": { "lvi_number": "0101202" }
+  },
+
+  "pagesize_clamp": {
+    "tool": "search",
+    "args": { "supplier_number": "8293", "page_size": 5000 }
+  },
+
+  "pagination_ceiling": null,
+
+  "bad_input": {
+    "tool": "lookup",
+    "args": { "lvi_number": "9999999" }
+  },
+
+  "empty_vs_error": {
+    "tool": "search",
+    "args": { "supplier_number": "8293", "lvi_number": "0000000" }
+  },
+
+  "auth_fail": {
+    "tool": "search",
+    "args": { "supplier_number": "8293" }
+  }
+}
