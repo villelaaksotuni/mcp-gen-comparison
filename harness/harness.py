@@ -16,6 +16,7 @@ Two modes:
 import argparse
 import asyncio
 import csv
+import dataclasses
 import json
 import os
 import re
@@ -26,6 +27,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastmcp import Client
 from fastmcp.client.transports import PythonStdioTransport
+from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import expected  # noqa: E402 (needs the sys.path tweak above first)
@@ -106,11 +108,28 @@ def find_etim_products(products, etim_class_id, etim_feature_id=None):
     return matches
 
 
+def to_plain(obj):
+    """Recursively normalize a tool result's parsed `.data` to plain
+    dict/list/scalars. fastmcp's OpenAPI-conversion tools parse JSON
+    responses into dynamically generated dataclasses (not plain dicts), so
+    the dict-walking helpers below would otherwise see nothing — this makes
+    checks work regardless of what type an arm's transport parsed into."""
+    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+        return {f.name: to_plain(getattr(obj, f.name)) for f in dataclasses.fields(obj)}
+    if isinstance(obj, BaseModel):
+        return to_plain(obj.model_dump())
+    if isinstance(obj, dict):
+        return {k: to_plain(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [to_plain(v) for v in obj]
+    return obj
+
+
 def payload(result):
     """Structured data from a tool call: prefer fastmcp's parsed `.data`,
     fall back to the raw structured content dict."""
     if result.data is not None:
-        return result.data
+        return to_plain(result.data)
     return result.structured_content
 
 
@@ -120,7 +139,7 @@ def text_blob(result):
     if result.structured_content is not None:
         parts.append(json.dumps(result.structured_content, default=str, ensure_ascii=False))
     if result.data is not None:
-        parts.append(json.dumps(result.data, default=str, ensure_ascii=False))
+        parts.append(json.dumps(to_plain(result.data), default=str, ensure_ascii=False))
     return "\n".join(p for p in parts if p)
 
 
