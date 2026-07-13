@@ -1,0 +1,12 @@
+{
+  "lookup_by_lvi":      {"tool": "list_products", "args": {"lvi_number": "0101202"}},
+  "lookup_by_link":     {"tool": "get_product", "args": {"product_link_number": "01012028293"}},
+  "supplier_filter":    {"tool": "list_products", "args": {"supplier_number": "8293"}},
+  "etim_filter":        null,
+  "projection":         {"tool": "list_products", "args": {"supplier_number": "8293"}},
+  "pagesize_clamp":     {"tool": "list_products", "args": {"supplier_number": "8293", "page_size": 5000}},
+  "pagination_ceiling": null,
+  "bad_input":          {"tool": "list_products", "args": {"lvi_number": "9999999"}},
+  "empty_vs_error":     {"tool": "list_products", "args": {"supplier_number": "8293", "product_type": "Y", "lvi_number": "0101202"}},
+  "auth_fail":          {"tool": "list_products", "args": {"supplier_number": "8293"}}
+}
