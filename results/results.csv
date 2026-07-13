@@ -1,3 +1,11 @@
 arm,timestamp,n_tools,tool_names,lookup_by_lvi,lookup_by_link,supplier_filter,etim_filter,projection,pagesize_clamp,pagination_ceiling,bad_input,empty_vs_error,auth_fail,total_passed
 from_openapi,2026-07-09T12:59:08,5,getChanged;getSuppliers;publicSearch;singleByGtin;singleFullData,PASS,PASS,PASS,FAIL,FAIL,PASS,NA,FAIL,FAIL,FAIL,4
 handauthored,2026-07-09T13:16:48,7,filter_by_etim_class;get_changed_products;get_product_by_gtin;get_product_by_link;list_suppliers;lookup_by_lvi_number;search_products,PASS,PASS,PASS,PASS,PASS,PASS,NA,PASS,PASS,PASS,9
+gsd,2026-07-13T11:56:45,6,get_changed_products;get_product;get_product_by_gtin;list_products;list_suppliers;search_products_by_keyword,PASS,PASS,PASS,FAIL,FAIL,PASS,NA,FAIL,FAIL,PASS,5
+gsd,2026-07-13T11:57:02,6,get_changed_products;get_product;get_product_by_gtin;list_products;list_suppliers;search_products_by_keyword,PASS,PASS,PASS,FAIL,FAIL,PASS,NA,FAIL,FAIL,PASS,5
+plain,2026-07-13T12:12:03,7,get_product;get_product_by_gtin;get_products_by_lvi_number;list_changed_products;list_suppliers;search_products;search_products_by_keyword,FAIL,FAIL,FAIL,FAIL,FAIL,PASS,NA,FAIL,FAIL,PASS,2
+from_openapi,2026-07-13T12:39:21,5,getChanged;getSuppliers;publicSearch;singleByGtin;singleFullData,PASS,PASS,PASS,FAIL,FAIL,PASS,NA,FAIL,FAIL,FAIL,4
+gsd,2026-07-13T12:39:29,6,get_changed_products;get_product;get_product_by_gtin;list_products;list_suppliers;search_products_by_keyword,PASS,PASS,PASS,FAIL,FAIL,PASS,NA,FAIL,FAIL,PASS,5
+handauthored,2026-07-13T12:39:41,7,filter_by_etim_class;get_changed_products;get_product_by_gtin;get_product_by_link;list_suppliers;lookup_by_lvi_number;search_products,PASS,PASS,PASS,PASS,PASS,PASS,NA,FAIL,PASS,PASS,8
+plain,2026-07-13T12:39:47,7,get_product;get_product_by_gtin;get_products_by_lvi_number;list_changed_products;list_suppliers;search_products;search_products_by_keyword,PASS,PASS,PASS,FAIL,PASS,PASS,NA,FAIL,FAIL,PASS,6
+handauthored,2026-07-13T13:30:00,7,filter_by_etim_class;get_changed_products;get_product_by_gtin;get_product_by_link;list_suppliers;lookup_by_lvi_number;search_products,PASS,PASS,PASS,PASS,PASS,PASS,NA,PASS,PASS,PASS,9

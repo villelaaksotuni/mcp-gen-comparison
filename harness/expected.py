@@ -30,3 +30,23 @@ FIXTURE_PATH = "fixtures/onninen_8293_page0.json"
 # API hard limits, used to construct the pagesize_clamp / pagination_ceiling checks.
 API_MAX_PAGE_SIZE = 1000
 API_RESULT_INDEX_CEILING = 15000
+
+# ---------------------------------------------------------------------------
+# Alias sets for field-name-agnostic product detection.
+# Arms may rename TT-coded fields to agent-friendly keys; the harness matches
+# correct VALUES under any of these key names rather than a single hardcoded one.
+# ---------------------------------------------------------------------------
+
+# Keys whose value is the LVI number (e.g. "0101202").
+LVI_NUMBER_ALIASES = ("TT020", "lvi_number", "lviNumber")
+
+# Keys whose value is the ProductLinkNumber (e.g. "01012028293").
+PRODUCT_LINK_NUMBER_ALIASES = ("TT024", "product_link_number", "productLinkNumber")
+
+# Supplier membership: a product belongs to SUPPLIER_NUMBER if ANY rule fires:
+#   SUPPLIER_ENDSWITH_ALIASES  — field value ends-in SUPPLIER_NUMBER (product link encodes it)
+#   SUPPLIER_EQUALS_ALIASES    — field value == SUPPLIER_NUMBER exactly
+#   SUPPLIER_TEXT_ALIASES      — field value (text) contains SUPPLIER_NUMBER
+SUPPLIER_ENDSWITH_ALIASES = ("TT024", "product_link_number", "productLinkNumber")
+SUPPLIER_EQUALS_ALIASES = ("supplier_number", "supplierNumber")
+SUPPLIER_TEXT_ALIASES = ("TT100", "supplier")

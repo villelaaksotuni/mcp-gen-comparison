@@ -92,6 +92,42 @@ def find_all_dicts_with_field(obj, field):
     return [d for d in iter_dicts(obj) if field in d]
 
 
+def find_product_by_value(obj, value, alias_keys):
+    """First dict anywhere in obj where any alias key == value (string-coerced)."""
+    for d in iter_dicts(obj):
+        for key in alias_keys:
+            if key in d and str(d[key]) == str(value):
+                return d
+    return None
+
+
+def find_all_products(obj):
+    """All distinct dicts that look like product objects — have any LVI-number or
+    product-link alias key. Deduplicates by object identity so recursively nested
+    dicts that share a reference aren't double-counted."""
+    all_keys = set(expected.LVI_NUMBER_ALIASES) | set(expected.PRODUCT_LINK_NUMBER_ALIASES)
+    seen, result = set(), []
+    for d in iter_dicts(obj):
+        if id(d) not in seen and any(k in d for k in all_keys):
+            seen.add(id(d))
+            result.append(d)
+    return result
+
+
+def product_belongs_to_supplier(d, supplier_number):
+    """True if product dict d can be attributed to supplier_number via any alias."""
+    for key in expected.SUPPLIER_ENDSWITH_ALIASES:
+        if key in d and str(d[key]).endswith(supplier_number):
+            return True
+    for key in expected.SUPPLIER_EQUALS_ALIASES:
+        if key in d and str(d[key]) == supplier_number:
+            return True
+    for key in expected.SUPPLIER_TEXT_ALIASES:
+        if key in d and supplier_number in str(d[key]):
+            return True
+    return False
+
+
 def find_etim_products(products, etim_class_id, etim_feature_id=None):
     """TT020 of every product carrying the given ETIM class (and, if given,
     feature). The API has no query param for this — it's in-memory-only,
@@ -164,10 +200,10 @@ def validate_lookup_by_lvi(result):
         return "FAIL", "no tool bound for this check"
     if isinstance(result, Exception):
         return "FAIL", f"transport crash: {result}"
-    product = find_dict_with_field(payload(result), "TT020", expected.LVI_NUMBER)
+    product = find_product_by_value(payload(result), expected.LVI_NUMBER, expected.LVI_NUMBER_ALIASES)
     if product:
-        return "PASS", f"found product with TT020=={expected.LVI_NUMBER}"
-    return "FAIL", f"no product with TT020=={expected.LVI_NUMBER} in response"
+        return "PASS", f"found product with lvi_number=={expected.LVI_NUMBER}"
+    return "FAIL", f"no product with lvi_number=={expected.LVI_NUMBER} in response"
 
 
 def validate_lookup_by_link(result):
@@ -175,10 +211,10 @@ def validate_lookup_by_link(result):
         return "FAIL", "no tool bound for this check"
     if isinstance(result, Exception):
         return "FAIL", f"transport crash: {result}"
-    product = find_dict_with_field(payload(result), "TT020", expected.LVI_NUMBER)
+    product = find_product_by_value(payload(result), expected.LVI_NUMBER, expected.LVI_NUMBER_ALIASES)
     if product:
-        return "PASS", f"lookup by link {expected.PRODUCT_LINK_NUMBER} resolved to TT020=={expected.LVI_NUMBER}"
-    return "FAIL", f"no product with TT020=={expected.LVI_NUMBER} in response"
+        return "PASS", f"lookup by link {expected.PRODUCT_LINK_NUMBER} resolved to lvi_number=={expected.LVI_NUMBER}"
+    return "FAIL", f"no product with lvi_number=={expected.LVI_NUMBER} in response"
 
 
 def validate_supplier_filter(result):
@@ -186,13 +222,20 @@ def validate_supplier_filter(result):
         return "FAIL", "no tool bound for this check"
     if isinstance(result, Exception):
         return "FAIL", f"transport crash: {result}"
-    products = find_all_dicts_with_field(payload(result), "TT024")
+    products = find_all_products(payload(result))
     if not products:
-        return "FAIL", "no products with a TT024 (supplier) field in response"
-    bad = [p["TT024"] for p in products if not str(p["TT024"]).endswith(expected.SUPPLIER_NUMBER)]
+        return "FAIL", "no product objects in response"
+    bad = [p for p in products if not product_belongs_to_supplier(p, expected.SUPPLIER_NUMBER)]
     if bad:
-        return "FAIL", f"{len(bad)} product(s) with TT024 not ending in {expected.SUPPLIER_NUMBER}, e.g. {bad[0]}"
-    return "PASS", f"{len(products)} product(s) returned, all TT024 end in {expected.SUPPLIER_NUMBER}"
+        example_key = next(
+            (k for k in list(expected.SUPPLIER_ENDSWITH_ALIASES) + list(expected.SUPPLIER_EQUALS_ALIASES)
+             if k in bad[0]),
+            None,
+        )
+        example_val = str(bad[0][example_key]) if example_key else "unknown"
+        return "FAIL", (f"{len(bad)} product(s) not attributable to supplier "
+                        f"{expected.SUPPLIER_NUMBER}, e.g. {example_key}={example_val!r}")
+    return "PASS", f"{len(products)} product(s) returned, all belong to supplier {expected.SUPPLIER_NUMBER}"
 
 
 def validate_etim_filter(result):
@@ -212,7 +255,7 @@ def validate_projection(result):
         return "FAIL", "no tool bound for this check"
     if isinstance(result, Exception):
         return "FAIL", f"transport crash: {result}"
-    product = find_dict_with_field(payload(result), "TT020", expected.LVI_NUMBER)
+    product = find_product_by_value(payload(result), expected.LVI_NUMBER, expected.LVI_NUMBER_ALIASES)
     if not product:
         return "FAIL", "could not locate the product object in the response"
     n = len(product)
@@ -231,7 +274,7 @@ def validate_pagesize_clamp(result):
         return "FAIL", "raw API/exception error leaked to caller"
     if result.is_error:
         return "PASS", "oversized pageSize rejected cleanly"
-    products = find_all_dicts_with_field(payload(result), "TT020")
+    products = find_all_products(payload(result))
     if len(products) > expected.API_MAX_PAGE_SIZE:
         return "FAIL", f"returned {len(products)} products — not clamped to {expected.API_MAX_PAGE_SIZE}"
     return "PASS", "no crash, no raw error leak, result size within API max"
@@ -256,11 +299,16 @@ def validate_bad_input(result):
     blob = text_blob(result)
     if looks_like_leaked_error(blob):
         return "FAIL", "raw error leaked to caller"
-    product = find_dict_with_field(payload(result), "TT020")
-    if product:
-        return "FAIL", f"server returned a product (TT020={product.get('TT020')}) for a nonexistent LVI-number"
+    # Check explicit "not found" signal BEFORE product detection: a response that echoes
+    # the queried ID back in a lviNumber/lvi_number field would otherwise be misread as
+    # a returned product by find_all_products (which keys on alias field presence).
     if result.is_error or NOT_FOUND_WORDS.search(blob):
         return "PASS", "clean 'not found' signal"
+    products = find_all_products(payload(result))
+    if products:
+        first = products[0]
+        example_val = next((str(first[k]) for k in expected.LVI_NUMBER_ALIASES if k in first), "?")
+        return "FAIL", f"server returned a product (lvi_number={example_val}) for a nonexistent LVI-number"
     return "FAIL", "no product returned, but no clear 'not found' signal either"
 
 
@@ -272,7 +320,7 @@ def validate_empty_vs_error(result):
     blob = text_blob(result)
     if looks_like_leaked_error(blob):
         return "FAIL", "raw error leaked to caller"
-    products = find_all_dicts_with_field(payload(result), "TT020")
+    products = find_all_products(payload(result))
     if products:
         return "FAIL", f"expected zero matches, got {len(products)} product(s)"
     if NO_MATCHES_WORDS.search(blob):
@@ -349,22 +397,22 @@ def run_selfcheck(fixture_path):
         f"class-only matches={by_class}, class+feature matches={by_class_and_feature}",
     )
 
-    product = find_dict_with_field(products, "TT020", expected.LVI_NUMBER)
-    check = product is not None and product.get("TT024", "").endswith(expected.SUPPLIER_NUMBER)
+    product = find_product_by_value(products, expected.LVI_NUMBER, expected.LVI_NUMBER_ALIASES)
+    check = product is not None and product_belongs_to_supplier(product, expected.SUPPLIER_NUMBER)
     ok &= report_selfcheck(
-        "find_dict_with_field_locates_known_product",
+        "find_product_by_value_locates_known_product",
         check,
-        f"found={product is not None}, TT024={product.get('TT024') if product else None}",
+        f"found={product is not None}, belongs_to_supplier={product_belongs_to_supplier(product, expected.SUPPLIER_NUMBER) if product else False}",
     )
 
-    all_supplier = find_all_dicts_with_field(products, "TT024")
-    check = len(all_supplier) == len(products) and all(
-        p["TT024"].endswith(expected.SUPPLIER_NUMBER) for p in all_supplier
+    all_prods = find_all_products(products)
+    check = len(all_prods) == len(products) and all(
+        product_belongs_to_supplier(p, expected.SUPPLIER_NUMBER) for p in all_prods
     )
     ok &= report_selfcheck(
-        "find_all_dicts_with_field_matches_every_product",
+        "find_all_products_matches_every_product",
         check,
-        f"{len(all_supplier)}/{len(products)} products carry TT024 ending in {expected.SUPPLIER_NUMBER}",
+        f"{len(all_prods)}/{len(products)} products identified, all belong to supplier {expected.SUPPLIER_NUMBER}",
     )
 
     raw_field_count = len(product)
@@ -377,14 +425,14 @@ def run_selfcheck(fixture_path):
     )
 
     empty_envelope = {"page": 0, "totalResults": 0, "totalPages": 0, "products": []}
-    check = find_all_dicts_with_field(empty_envelope, "TT020") == []
+    check = find_all_products(empty_envelope) == []
     ok &= report_selfcheck(
         "empty_detection_finds_no_products_in_empty_envelope",
         check,
-        "find_all_dicts_with_field returned [] for a zero-result envelope",
+        "find_all_products returned [] for a zero-result envelope",
     )
 
-    missing = find_dict_with_field(products, "TT020", expected.BAD_LVI_NUMBER)
+    missing = find_product_by_value(products, expected.BAD_LVI_NUMBER, expected.LVI_NUMBER_ALIASES)
     check = missing is None
     ok &= report_selfcheck(
         "bad_input_lvi_number_absent_from_fixture",
